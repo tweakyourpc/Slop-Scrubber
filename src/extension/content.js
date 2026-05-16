@@ -8,6 +8,7 @@
   const SCANNED_ATTR = "data-slop-scrubber-scanned";
   const MIN_CANDIDATE_TEXT_LENGTH = 20;
   const DEFAULT_MAX_CANDIDATE_TEXT_LENGTH = 1200;
+  const GENERIC_FALLBACK_SELECTOR = "div, a";
   const HEADING_SELECTORS = [
     "[slot='title']",
     "h1",
@@ -49,6 +50,11 @@
     "c-wiz",
     "g-card",
     "shreddit-post",
+    "ytd-rich-item-renderer",
+    "ytd-video-renderer",
+    "ytd-compact-video-renderer",
+    "ytd-grid-video-renderer",
+    "ytd-rich-grid-media",
     "[data-testid='tweet']",
     "[data-testid='cellInnerDiv']",
     "[data-urn*='urn:li:activity']",
@@ -64,11 +70,14 @@
     "[role='article']",
     "section",
     "li",
-    "a",
-    "div",
     "c-wiz",
     "g-card",
     "shreddit-post",
+    "ytd-rich-item-renderer",
+    "ytd-video-renderer",
+    "ytd-compact-video-renderer",
+    "ytd-grid-video-renderer",
+    "ytd-rich-grid-media",
     "[data-testid='tweet']",
     "[data-testid='cellInnerDiv']",
     "[data-urn*='urn:li:activity']",
@@ -131,7 +140,7 @@
 
   function queryFirstText(node, selectors) {
     for (const selector of selectors) {
-      const match = node.querySelector(selector);
+      const match = node.matches?.(selector) ? node : node.querySelector(selector);
       const text = nodeText(match);
       if (text) {
         return text;
@@ -144,6 +153,14 @@
     return matchesSelector(node, KNOWN_CARD_SELECTOR);
   }
 
+  function hasExcerptSignal(node) {
+    return Boolean(normalizeText(
+      node.getAttribute?.("data-excerpt") ||
+        node.querySelector("[data-excerpt], p, #description-text, [slot='summary']")?.innerText ||
+        ""
+    ));
+  }
+
   function hasCardSignals(node) {
     return Boolean(
       hasKnownCardMarker(node) ||
@@ -152,6 +169,10 @@
       queryFirstText(node, HEADING_SELECTORS) ||
       queryFirstText(node, PUBLISHER_SELECTORS)
     );
+  }
+
+  function hasStructuredFallbackSignals(node) {
+    return Boolean(firstHeadingText(node) && (firstPublisherText(node) || hasExcerptSignal(node)));
   }
 
   function maxCandidateTextLength(node) {
@@ -178,7 +199,10 @@
     if (text.length > maxCandidateTextLength(node) && !hasKnownCardMarker(node)) {
       return false;
     }
-    if (matchesSelector(node, "div, a") && !hasCardSignals(node) && !hasKnownCardMarker(node)) {
+    if (matchesSelector(node, GENERIC_FALLBACK_SELECTOR)) {
+      return hasKnownCardMarker(node) || hasStructuredFallbackSignals(node);
+    }
+    if (!hasCardSignals(node) && !hasKnownCardMarker(node)) {
       return false;
     }
     return true;
@@ -191,7 +215,6 @@
   function firstPublisherText(node) {
     return queryFirstText(node, PUBLISHER_SELECTORS) || normalizeText(
       node.getAttribute?.("data-publisher") ||
-        node.getAttribute?.("aria-label") ||
         node.dataset?.publisher ||
         ""
     );

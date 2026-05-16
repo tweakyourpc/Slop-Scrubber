@@ -1,9 +1,10 @@
 {
-  "version": 4,
+  "version": 5,
   "changelog": {
     "2": "Initial release with em-dash classifier and ad-token filters.",
     "3": "typography_noise no longer fires on em-dash; headline_like restricted to numeric-prefix patterns only.",
-    "4": "Expanded native-ad sentinel labels and added non-numeric headline-bait patterns."
+    "4": "Expanded native-ad sentinel labels and added non-numeric headline-bait patterns.",
+    "5": "Removed overly broad recommendation sentinel phrasing to reduce media-grid false positives."
   },
   "thresholds": {
     "human": 25,
@@ -51,7 +52,6 @@
     "from our partners",
     "brought to you by",
     "in association with",
-    "recommended for you",
     "suggested post",
     "suggested for you",
     "around the web",

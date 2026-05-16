@@ -30,4 +30,4 @@ def test_typography_noise_does_not_flag_em_dash() -> None:
 
 
 def test_rules_version_is_current() -> None:
-    assert load_rules("config/rules.json")["version"] == 4
+    assert load_rules("config/rules.json")["version"] == 5

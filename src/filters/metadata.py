@@ -28,7 +28,6 @@ SPONSORED_SENTINELS = (
     "from our partners",
     "brought to you by",
     "in association with",
-    "recommended for you",
     "suggested post",
     "suggested for you",
     "around the web",
