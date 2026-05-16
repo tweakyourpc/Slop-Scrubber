@@ -34,6 +34,14 @@ Changes to `src/extension/` or `config/rules.json` require rebuilding the genera
 python scripts/build_extension.py
 ```
 
+Before publishing a GitHub release for non-technical users, package the browser bundle as a zip:
+
+```bash
+python scripts/build_extension.py --package
+```
+
+This writes `dist/releases/slop-scrubber-extension-v<version>.zip`. Upload that zip to the matching GitHub Release.
+
 Before loading the extension in Chrome, verify the generated bundle is current:
 
 ```bash

@@ -1,9 +1,10 @@
-"""Build a self-contained Chrome extension directory."""
+"""Build and package a self-contained Chrome extension directory."""
 
 from __future__ import annotations
 
-import shutil
 import argparse
+import json
+import shutil
 from pathlib import Path
 
 
@@ -11,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "src" / "extension"
 RULES = ROOT / "config" / "rules.json"
 OUTPUT = ROOT / "dist" / "extension"
+RELEASES = ROOT / "dist" / "releases"
 EXCLUDED_NAMES = {"package.json", "__init__.py"}
 EXCLUDED_PARTS = {"__pycache__"}
 EXCLUDED_SUFFIXES = {".pyc", ".pyo"}
@@ -59,6 +61,38 @@ def _copy_plan() -> list[tuple[Path, Path]]:
     return planned
 
 
+def _manifest_version() -> str:
+    manifest = json.loads((SOURCE / "manifest.json").read_text(encoding="utf-8"))
+    return str(manifest["version"])
+
+
+def _archive_stem() -> str:
+    return f"slop-scrubber-extension-v{_manifest_version()}"
+
+
+def _package_extension() -> Path:
+    if not OUTPUT.exists():
+        raise FileNotFoundError(f"{OUTPUT} does not exist; run a build first")
+
+    RELEASES.mkdir(parents=True, exist_ok=True)
+    archive_base = RELEASES / _archive_stem()
+    archive_path = Path(f"{archive_base}.zip")
+    staging_root = ROOT / "dist" / "_package"
+    packaged_root = staging_root / _archive_stem()
+
+    if staging_root.exists():
+        shutil.rmtree(staging_root)
+    if archive_path.exists():
+        archive_path.unlink()
+
+    staged_parent = packaged_root.parent
+    staged_parent.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(OUTPUT, packaged_root)
+    shutil.make_archive(str(archive_base), "zip", root_dir=staging_root, base_dir=_archive_stem())
+    shutil.rmtree(staging_root)
+    return archive_path
+
+
 def _check_staleness() -> int:
     if not OUTPUT.exists():
         print(f"{OUTPUT.relative_to(ROOT)} does not exist; run python scripts/build_extension.py", flush=True)
@@ -87,6 +121,7 @@ def _check_staleness() -> int:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true", help="check for staleness without rebuilding")
+    parser.add_argument("--package", action="store_true", help="build and package a release zip")
     args = parser.parse_args()
 
     if args.check:
@@ -99,6 +134,10 @@ def main() -> int:
     print(f"Copied {len(copied)} files")
     for path in sorted(copied):
         print(path.relative_to(ROOT))
+
+    if args.package:
+        archive_path = _package_extension()
+        print(f"Packaged release zip at {archive_path}")
     return 0
 
 

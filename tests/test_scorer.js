@@ -83,6 +83,9 @@ await run("metadata helpers preserve sponsored matching semantics", () => {
   assert.equal(matchAdLayoutToken("AmazonSponsored"), "AmazonSponsored");
   assert.equal(matchAdLayoutToken("Amazon is Sponsored"), null);
   assert.equal(matchSponsoredSentinel("House Promo: a local feature", ["house promo"]), "house promo");
+  assert.equal(matchSponsoredSentinel("Forbes BrandVoice | Paid Program"), "brandvoice");
+  assert.equal(matchSponsoredSentinel("Presented by Peacock"), "presented by");
+  assert.equal(matchSponsoredSentinel("Researchers suggested a new approach"), null);
 });
 
 await run("typography noise excludes em dash and catches punctuation clusters", () => {
@@ -120,6 +123,60 @@ await run("headline_like flags capitalized numbered listicles", () => {
   const result = scoreText("10 Habits of Highly Effective People", rules);
   assert.equal(result.score, 8);
   assert.equal(result.matchedRules.includes("headline_like"), true);
+});
+
+await run("headline patterns flag non-numeric clickbait", () => {
+  const rules = {
+    thresholds,
+    weights: {
+      headline_why_wrong: 18,
+      headline_you_wont_believe: 20,
+      headline_what_it_means_for_you: 12,
+    },
+    regex_patterns: {
+      headline_why_wrong: "^[Ww]hy\\s+everything\\s+you\\s+know\\s+about\\s+.+\\s+(?:is|are)\\s+wrong\\b",
+      headline_you_wont_believe: "^[Yy]ou\\s+won['’]?t\\s+believe\\b.+",
+      headline_what_it_means_for_you: "^[Ww]hat\\s+(?:this|it)\\s+means\\s+for\\s+you\\b.+",
+    },
+  };
+
+  const cases = [
+    ["Why everything you know about hydration is wrong", "headline_why_wrong", 18],
+    ["You won't believe what happened after the update", "headline_you_wont_believe", 20],
+    ["What this means for you as a borrower", "headline_what_it_means_for_you", 12],
+  ];
+
+  for (const [text, expectedRule, expectedScore] of cases) {
+    const result = scoreText(text, rules);
+    assert.equal(result.score, expectedScore);
+    assert.equal(result.matchedRules.includes(expectedRule), true);
+  }
+});
+
+await run("headline patterns avoid broad false positives", () => {
+  const rules = {
+    thresholds,
+    weights: {
+      headline_why_wrong: 18,
+      headline_this_is_why: 10,
+      headline_heres_what: 10,
+    },
+    regex_patterns: {
+      headline_why_wrong: "^[Ww]hy\\s+everything\\s+you\\s+know\\s+about\\s+.+\\s+(?:is|are)\\s+wrong\\b",
+      headline_this_is_why: "^[Tt]his\\s+is\\s+why\\s+(?:you\\b|your\\b|everyone\\b|nobody\\b|the\\s+(?:internet|world|media)\\b).+",
+      headline_heres_what: "^[Hh]ere(?:['’])?[Ss]\\s+what\\s+(?:happens|you\\s+(?:need|should)\\s+know|nobody\\s+tells\\s+you|to\\s+know)\\b.+",
+    },
+  };
+
+  for (const text of [
+    "Why everything we know about climate models is still evolving",
+    "This is why the merger failed after two quarters",
+    "Here's what happened at the city council meeting",
+  ]) {
+    const result = scoreText(text, rules);
+    assert.equal(result.score, 0);
+    assert.deepEqual(result.matchedRules, []);
+  }
 });
 
 await run("title_fragment does not score publisher names", () => {

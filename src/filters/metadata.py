@@ -13,11 +13,28 @@ AD_LAYOUT_TOKENS = (
 )
 
 SPONSORED_SENTINELS = (
-    "sponsored",
-    "promoted",
+    "paid partner content",
     "partner content",
+    "brandvoice",
+    "paid program",
+    "brand publisher",
+    "brandstudio",
+    "presented by",
+    "advertiser content",
+    "paid content",
     "native ad",
     "paid post",
+    "from our sponsors",
+    "from our partners",
+    "brought to you by",
+    "in association with",
+    "recommended for you",
+    "suggested post",
+    "suggested for you",
+    "around the web",
+    "you may like",
+    "sponsored",
+    "promoted",
 )
 
 

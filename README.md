@@ -21,9 +21,21 @@ The project is built around four constraints:
 - Editable rules: weights, thresholds, sentinels, and regex patterns live in JSON.
 - Reversible UI: blocked content is blurred, not deleted.
 
+## Quick Install
+
+If you just want the browser extension, download the prebuilt release zip from the GitHub Releases page, unzip it locally, and load the unzipped folder in Chrome as an unpacked extension.
+
+1. Download `slop-scrubber-extension-v0.1.1.zip` from Releases.
+2. Unzip it.
+3. Open `chrome://extensions`.
+4. Enable Developer Mode.
+5. Click "Load unpacked" and select the unzipped `slop-scrubber-extension-v0.1.1/` folder.
+
+Chrome does not install this package directly from the zip file. It must be unzipped first.
+
 ## What It Does
 
-When you browse, the extension scores candidate DOM elements as `{ title, excerpt, publisher }` cards. The scorer looks for structural and textual signals such as sponsored layout tokens, configured sentinel phrases, numbered headline patterns, punctuation noise, and em-dash usage classes.
+When you browse, the extension scores candidate DOM elements as `{ title, excerpt, publisher }` cards. The scorer looks for structural and textual signals such as sponsored layout tokens, configured sentinel phrases, numbered and non-numeric clickbait headline patterns, punctuation noise, and em-dash usage classes.
 
 The result is a Slop Score Index from `0` to `100`. The browser extension uses that score to pass, flag, or suppress matching cards. The Python library and CLI use the same rules for offline testing and calibration.
 
@@ -108,6 +120,8 @@ The scorer extracts text from a raw string or a `{ title, excerpt, publisher }` 
 
 `headline_like` controls numbered headline/listicle patterns.
 
+`headline_why_wrong`, `headline_truth_bait`, `headline_nobody_tells_you`, `headline_this_is_why`, `headline_heres_why`, `headline_heres_what`, `headline_you_wont_believe`, `headline_why_it_matters`, and `headline_what_it_means_for_you` control higher-confidence non-numeric clickbait structures.
+
 `parenthetical_dash` controls em-dash parentheticals such as `X - which is Y - Z` using the actual em-dash character.
 
 `serial_dash` and `serial_dash_step` control repeated em-dash chains.
@@ -126,7 +140,7 @@ The scorer extracts text from a raw string or a `{ title, excerpt, publisher }` 
 
 The em-dash classifier is intentionally ordered. It first checks for parenthetical and serial constructions, then list descriptors, heading-style labels, colon candidates, comma candidates, and finally fallback cases. This preserves the same linguistic branch order in the Python and JavaScript scorers.
 
-`headline_like` is intentionally narrow and currently requires a numeric prefix. Broader clickbait detection should be added as a separate rule so ordinary human sentences do not inherit listicle penalties.
+`headline_like` remains intentionally narrow and only covers numeric-prefix listicles. Broader clickbait patterns now live in separate `headline_*` rules so they can be tuned independently.
 
 Typography noise intentionally excludes em dashes. Em-dash handling belongs to the classifier; typography noise is reserved for punctuation clusters that are not otherwise classified.
 
@@ -139,6 +153,14 @@ python scripts/build_extension.py
 ```
 
 This creates `dist/extension/`, copies the browser files from `src/extension/`, copies `config/rules.json` into `dist/extension/config/rules.json`, and writes a manifest with resource paths relative to the extension root.
+
+Package a downloadable release zip:
+
+```bash
+python scripts/build_extension.py --package
+```
+
+This also writes `dist/releases/slop-scrubber-extension-v0.1.1.zip`, which is the file attached to GitHub Releases for less technical users.
 
 To load it in Chrome, open `chrome://extensions`, enable Developer Mode, choose "Load unpacked", and select `dist/extension/`.
 

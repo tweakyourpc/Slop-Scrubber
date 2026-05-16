@@ -79,6 +79,7 @@ DEFAULT_THRESHOLDS = {
     "human": 25,
     "suspect": 60,
 }
+HEADLINE_RULE_PREFIX = "headline_"
 
 
 @dataclass(frozen=True)
@@ -265,7 +266,7 @@ def _score_single_field(
     field: str,
 ) -> tuple[int, list[str], dict[str, int]]:
     weights = rules.get("weights", {})
-    headline_like_pattern = rules.get("regex_patterns", {}).get("headline_like")
+    regex_patterns = rules.get("regex_patterns", {})
     score = 0
     matches: list[str] = []
     breakdown: dict[str, int] = {}
@@ -294,14 +295,17 @@ def _score_single_field(
             matches.append("typography_noise")
             breakdown["typography_noise"] = breakdown.get("typography_noise", 0) + penalty
 
-    if headline_like_pattern is not None:
-        stripped = text.strip().strip("\"'“”‘’()[]{}")
-        if stripped and re.search(headline_like_pattern, stripped):
-            penalty = int(weights.get("headline_like", 0))
-            if penalty:
-                score += penalty
-                matches.append("headline_like")
-                breakdown["headline_like"] = breakdown.get("headline_like", 0) + penalty
+    stripped = text.strip().strip("\"'“”‘’()[]{}")
+    if stripped:
+        for rule_name, pattern in regex_patterns.items():
+            if not rule_name.startswith(HEADLINE_RULE_PREFIX) or not pattern:
+                continue
+            if re.search(str(pattern), stripped):
+                penalty = int(weights.get(rule_name, 0))
+                if penalty:
+                    score += penalty
+                    matches.append(rule_name)
+                    breakdown[rule_name] = breakdown.get(rule_name, 0) + penalty
 
     line_score, line_matches, line_breakdown = _score_line(
         text,

@@ -35,8 +35,32 @@ const PARENTHETICAL_PREFIXES = [
 const COLON_CUE_RE = /\b(is|are|was|were|means|meant|remains|remained|looks|looked|sounds|sounded|feels|felt|goal|result|plan|rule)\b/i;
 const ACTION_PREFIXES = ["by ", "just ", "paste ", "review ", "run ", "set up ", "to ", "use "];
 const SHORT_LABEL_TERMS = new Set(["guide", "logic", "priority", "reference", "sheet", "status", "tab", "tiers", "values"]);
-const SPONSORED_SENTINELS = ["sponsored", "promoted", "partner content", "native ad", "paid post"];
+const SPONSORED_SENTINELS = [
+  "paid partner content",
+  "partner content",
+  "brandvoice",
+  "paid program",
+  "brand publisher",
+  "brandstudio",
+  "presented by",
+  "advertiser content",
+  "paid content",
+  "native ad",
+  "paid post",
+  "from our sponsors",
+  "from our partners",
+  "brought to you by",
+  "in association with",
+  "recommended for you",
+  "suggested post",
+  "suggested for you",
+  "around the web",
+  "you may like",
+  "sponsored",
+  "promoted",
+];
 const DEFAULT_THRESHOLDS = { human: 25, suspect: 60 };
+const HEADLINE_RULE_PREFIX = "headline_";
 
 function wordCount(text) {
   const trimmed = String(text).trim();
@@ -323,7 +347,7 @@ function buildRegex(pattern) {
 
 function scoreSingleField(text, rules, field) {
   const weights = rules.weights ?? {};
-  const headlineLikePattern = buildRegex(rules.regex_patterns?.headline_like);
+  const regexPatterns = rules.regex_patterns ?? {};
   let score = 0;
   const matches = [];
   const breakdown = {};
@@ -357,14 +381,20 @@ function scoreSingleField(text, rules, field) {
     }
   }
 
-  if (headlineLikePattern) {
-    const stripped = String(text).trim().replace(/^[\"'“”‘’()\[\]{}]+|[\"'“”‘’()\[\]{}]+$/g, "");
-    if (stripped && headlineLikePattern.test(stripped)) {
-      const penalty = Number(weights.headline_like ?? 0);
-      if (penalty) {
-        score += penalty;
-        matches.push("headline_like");
-        breakdown.headline_like = (breakdown.headline_like ?? 0) + penalty;
+  const stripped = String(text).trim().replace(/^[\"'“”‘’()\[\]{}]+|[\"'“”‘’()\[\]{}]+$/g, "");
+  if (stripped) {
+    for (const [ruleName, pattern] of Object.entries(regexPatterns)) {
+      if (!ruleName.startsWith(HEADLINE_RULE_PREFIX)) {
+        continue;
+      }
+      const headlinePattern = buildRegex(pattern);
+      if (headlinePattern?.test(stripped)) {
+        const penalty = Number(weights[ruleName] ?? 0);
+        if (penalty) {
+          score += penalty;
+          matches.push(ruleName);
+          breakdown[ruleName] = (breakdown[ruleName] ?? 0) + penalty;
+        }
       }
     }
   }

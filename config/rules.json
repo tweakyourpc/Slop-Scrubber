@@ -1,8 +1,9 @@
 {
-  "version": 3,
+  "version": 4,
   "changelog": {
     "2": "Initial release with em-dash classifier and ad-token filters.",
-    "3": "typography_noise no longer fires on em-dash; headline_like restricted to numeric-prefix patterns only."
+    "3": "typography_noise no longer fires on em-dash; headline_like restricted to numeric-prefix patterns only.",
+    "4": "Expanded native-ad sentinel labels and added non-numeric headline-bait patterns."
   },
   "thresholds": {
     "human": 25,
@@ -14,6 +15,15 @@
     "typography_noise": 8,
     "title_fragment": 6,
     "headline_like": 8,
+    "headline_why_wrong": 18,
+    "headline_truth_bait": 16,
+    "headline_nobody_tells_you": 16,
+    "headline_this_is_why": 10,
+    "headline_heres_why": 10,
+    "headline_heres_what": 10,
+    "headline_you_wont_believe": 20,
+    "headline_why_it_matters": 12,
+    "headline_what_it_means_for_you": 12,
     "parenthetical_dash": 14,
     "serial_dash": 20,
     "serial_dash_step": 2,
@@ -25,9 +35,41 @@
     "multi_dash_fallback": 16,
     "multi_dash_step": 4
   },
-  "sentinel_words": ["sponsored", "promoted", "partner content", "native ad", "paid post"],
+  "sentinel_words": [
+    "paid partner content",
+    "partner content",
+    "brandvoice",
+    "paid program",
+    "brand publisher",
+    "brandstudio",
+    "presented by",
+    "advertiser content",
+    "paid content",
+    "native ad",
+    "paid post",
+    "from our sponsors",
+    "from our partners",
+    "brought to you by",
+    "in association with",
+    "recommended for you",
+    "suggested post",
+    "suggested for you",
+    "around the web",
+    "you may like",
+    "sponsored",
+    "promoted"
+  ],
   "regex_patterns": {
     "exact_em_dash": "\\u2014",
-    "headline_like": "^(\\d+\\s+)[A-Z]"
+    "headline_like": "^(\\d+\\s+)[A-Z]",
+    "headline_why_wrong": "^[Ww]hy\\s+everything\\s+you\\s+know\\s+about\\s+.+\\s+(?:is|are)\\s+wrong\\b",
+    "headline_truth_bait": "^(?:[Tt]he\\s+)?(?:[Ss]hocking|[Ss]urprising|[Rr]eal)\\s+truth\\s+about\\s+.+",
+    "headline_nobody_tells_you": "^[Ww]hat\\s+nobody\\s+tells\\s+you\\s+about\\s+.+",
+    "headline_this_is_why": "^[Tt]his\\s+is\\s+why\\s+(?:you\\b|your\\b|everyone\\b|nobody\\b|the\\s+(?:internet|world|media)\\b).+",
+    "headline_heres_why": "^[Hh]ere(?:['’])?[Ss]\\s+why\\s+(?:you\\b|your\\b|everyone\\b|nobody\\b|this\\b|that\\b|the\\s+(?:real|truth)\\b).+",
+    "headline_heres_what": "^[Hh]ere(?:['’])?[Ss]\\s+what\\s+(?:happens|you\\s+(?:need|should)\\s+know|nobody\\s+tells\\s+you|to\\s+know)\\b.+",
+    "headline_you_wont_believe": "^[Yy]ou\\s+won['’]?t\\s+believe\\b.+",
+    "headline_why_it_matters": "^(?:[Ww]hat|[Ww]hy|[Hh]ow|[Ww]hen|[Ww]here|[Ww]ho|[Ii]s|[Aa]re|[Cc]an|[Cc]ould|[Dd]id|[Dd]oes|[Dd]o|[Ww]ill|[Ww]ould|[Ss]hould)\\b.+(?:\\?|\\u2014|-)\\s*and\\s+why\\s+it\\s+matters\\b[.!?]*$",
+    "headline_what_it_means_for_you": "^[Ww]hat\\s+(?:this|it)\\s+means\\s+for\\s+you\\b.+"
   }
 }

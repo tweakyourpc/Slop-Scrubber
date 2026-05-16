@@ -46,6 +46,16 @@ FIXTURES = [
         },
     },
     {
+        "name": "brandvoice label",
+        "input": {
+            "title": "Forbes BrandVoice | Paid Program",
+            "excerpt": "",
+            "publisher": "Forbes",
+        },
+        "expected_bucket": "Suspect (Highlight)",
+        "expected_rules": ["sentinel:brandvoice"],
+    },
+    {
         "name": "em dash heading style",
         "input": {
             "title": "Quick Guide — Get Started",
@@ -69,6 +79,16 @@ FIXTURES = [
             "publisher": "Example",
         },
         "sentinel_words": ["house promo"],
+    },
+    {
+        "name": "non-numeric clickbait title",
+        "input": {
+            "title": "You won't believe what happened after the update",
+            "excerpt": "",
+            "publisher": "Example",
+        },
+        "expected_bucket": "Human",
+        "expected_rules": ["headline_you_wont_believe"],
     },
     {
         "name": "parenthetical dash",
