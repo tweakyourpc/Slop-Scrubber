@@ -1,0 +1,7 @@
+{
+  "type": "module",
+  "scripts": {
+    "lint": "node --check src/extension/scorer.js && node --check src/extension/content.js && node --check src/extension/popup.js && node --check tests/test_scorer.js",
+    "test": "node tests/test_scorer.js"
+  }
+}

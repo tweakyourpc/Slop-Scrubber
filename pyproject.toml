@@ -1,0 +1,25 @@
+[build-system]
+requires = ["hatchling>=1.21"]
+build-backend = "hatchling.build"
+
+[project]
+name = "slop-scrubber"
+version = "0.1.0"
+description = "Deterministic local content filtering for feed cards and sponsored/native-ad content"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+slop-scrubber = "src.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+[tool.hatch.envs.default.scripts]
+build-extension = "python scripts/build_extension.py"
+check-extension = "python scripts/build_extension.py --check"
+check-parity = "python scripts/check_parity.py"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

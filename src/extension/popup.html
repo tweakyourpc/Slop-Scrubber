@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Slop-Scrubber</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #f7f4ef;
+        --panel: #ffffff;
+        --text: #1d1d1f;
+        --muted: #64646b;
+        --line: #d8d3cc;
+        --accent: rgba(255, 0, 0, 0.82);
+        --accent-soft: rgba(255, 0, 0, 0.08);
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #121212;
+          --panel: #1b1b1b;
+          --text: #f3f3f4;
+          --muted: #a4a4aa;
+          --line: #313136;
+          --accent: rgba(255, 92, 92, 0.95);
+          --accent-soft: rgba(255, 92, 92, 0.12);
+        }
+      }
+
+      html,
+      body {
+        width: 320px;
+        margin: 0;
+        padding: 0;
+        background: linear-gradient(180deg, var(--bg), var(--panel));
+        color: var(--text);
+        font: 13px/1.45 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      body {
+        box-sizing: border-box;
+        padding: 14px;
+      }
+
+      .card {
+        border: 1px solid var(--line);
+        background: var(--panel);
+        border-radius: 14px;
+        padding: 12px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      }
+
+      .eyebrow {
+        color: var(--muted);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin: 0 0 6px;
+      }
+
+      h1 {
+        margin: 0 0 4px;
+        font-size: 16px;
+        line-height: 1.2;
+      }
+
+      .domain {
+        color: var(--muted);
+        margin-bottom: 10px;
+        overflow-wrap: anywhere;
+      }
+
+      .row {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 6px 0;
+        border-top: 1px solid var(--line);
+      }
+
+      .row:first-of-type {
+        border-top: 0;
+      }
+
+      .value {
+        font-variant-numeric: tabular-nums;
+      }
+
+      .toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin: 12px 0;
+        padding: 10px 12px;
+        background: var(--accent-soft);
+        border-radius: 12px;
+      }
+
+      .toggle label {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .toggle strong {
+        font-size: 13px;
+      }
+
+      .toggle span {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .rules {
+        margin-top: 12px;
+      }
+
+      .rules h2 {
+        margin: 0 0 8px;
+        font-size: 12px;
+      }
+
+      .rule-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .rule-list li {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        border-top: 1px solid var(--line);
+        padding: 6px 0;
+      }
+
+      .rule-list li:first-child {
+        border-top: 0;
+      }
+
+      .empty {
+        color: var(--muted);
+      }
+
+      .status {
+        margin-top: 10px;
+        color: var(--accent);
+        font-size: 12px;
+        min-height: 1.2em;
+      }
+
+      input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        accent-color: var(--accent);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <p class="eyebrow">Slop-Scrubber</p>
+      <h1 id="title">Current Domain</h1>
+      <div class="domain" id="domain">Loading…</div>
+
+      <div class="toggle">
+        <label for="enabled">
+          <strong>Enable scoring on this domain</strong>
+          <span>Stored locally in Chrome.</span>
+        </label>
+        <input id="enabled" type="checkbox" />
+      </div>
+
+      <div class="row">
+        <span>Suspect</span>
+        <span class="value" id="suspect-count">0</span>
+      </div>
+      <div class="row">
+        <span>High Probability Slop</span>
+        <span class="value" id="block-count">0</span>
+      </div>
+      <div class="row">
+        <span>Total flagged</span>
+        <span class="value" id="flagged-count">0</span>
+      </div>
+
+      <div class="rules">
+        <h2>Top rules</h2>
+        <ul class="rule-list" id="rule-list">
+          <li class="empty">No rule hits yet.</li>
+        </ul>
+      </div>
+
+      <div class="status" id="status"></div>
+    </div>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

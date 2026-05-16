@@ -1,0 +1,18 @@
+[data-slop-scrubber-flagged="suspect"] {
+  background: rgba(255, 0, 0, 0.06);
+  outline: 1px solid rgba(255, 0, 0, 0.35);
+}
+
+[data-slop-scrubber-flagged="block"] {
+  opacity: 0.08;
+  filter: blur(3px);
+  pointer-events: none;
+  transition: opacity 0.2s, filter 0.2s;
+  cursor: pointer;
+}
+
+[data-slop-scrubber-flagged="block"][data-slop-scrubber-revealed] {
+  opacity: 1;
+  filter: none;
+  pointer-events: auto;
+}
