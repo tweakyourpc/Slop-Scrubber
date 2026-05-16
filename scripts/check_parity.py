@@ -44,6 +44,9 @@ FIXTURES = [
             "excerpt": "",
             "publisher": "Example",
         },
+        "expected_bucket": "Suspect (Highlight)",
+        "expected_score": 31,
+        "expected_rules": ["headline_like", "title_fragment"],
     },
     {
         "name": "brandvoice label",
@@ -54,6 +57,26 @@ FIXTURES = [
         },
         "expected_bucket": "Suspect (Highlight)",
         "expected_rules": ["sentinel:brandvoice"],
+    },
+    {
+        "name": "forbes councils label",
+        "input": {
+            "title": "Forbes Councils: How To Build a Remote Team",
+            "excerpt": "",
+            "publisher": "Forbes",
+        },
+        "expected_bucket": "Suspect (Highlight)",
+        "expected_rules": ["sentinel:forbes councils"],
+    },
+    {
+        "name": "advertisement publisher label",
+        "input": {
+            "title": "Daily picks",
+            "excerpt": "",
+            "publisher": "Advertisement",
+        },
+        "expected_bucket": "Suspect (Highlight)",
+        "expected_rules": ["sentinel:advertisement"],
     },
     {
         "name": "em dash heading style",
@@ -134,6 +157,16 @@ FIXTURES = [
         "name": "numbered listicle with lowercase title",
         "input": {
             "title": "10 habits of highly effective people",
+            "excerpt": "",
+            "publisher": "Example",
+        },
+        "expected_bucket": "Human",
+        "expected_score": 0,
+    },
+    {
+        "name": "numbered listicle with lowercase post-number word",
+        "input": {
+            "title": "10 habits that might be killing your sex drive",
             "excerpt": "",
             "publisher": "Example",
         },

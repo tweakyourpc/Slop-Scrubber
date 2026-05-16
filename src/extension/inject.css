@@ -1,6 +1,7 @@
 [data-slop-scrubber-flagged="suspect"] {
-  background: rgba(255, 0, 0, 0.06);
-  outline: 1px solid rgba(255, 0, 0, 0.35);
+  background: rgba(255, 180, 0, 0.10);
+  outline: 2px solid rgba(255, 140, 0, 0.55);
+  border-radius: 4px;
 }
 
 [data-slop-scrubber-flagged="block"] {
@@ -9,6 +10,7 @@
   pointer-events: none;
   transition: opacity 0.2s, filter 0.2s;
   cursor: pointer;
+  border-radius: 4px;
 }
 
 [data-slop-scrubber-flagged="block"][data-slop-scrubber-revealed] {

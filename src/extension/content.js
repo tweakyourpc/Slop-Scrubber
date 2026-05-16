@@ -10,9 +10,34 @@
   const DEFAULT_MAX_CANDIDATE_TEXT_LENGTH = 1200;
   const GENERIC_FALLBACK_SELECTOR = "div, a";
   const LINKEDIN_POST_SELECTOR = ".feed-shared-update-v2, .occludable-update";
+  const YOUTUBE_CARD_SELECTOR = [
+    "ytd-rich-item-renderer",
+    "ytd-video-renderer",
+    "ytd-compact-video-renderer",
+    "ytd-grid-video-renderer",
+    "ytd-rich-grid-media",
+  ].join(", ");
+  const TABOOLA_OUTBRAIN_SELECTOR = [
+    "[class*='taboola']",
+    "[class*='outbrain']",
+    "[data-widget-type*='taboola']",
+    "[data-widget-type*='outbrain']",
+  ].join(", ");
   const LINKEDIN_TITLE_SELECTORS = [
     ".feed-shared-text",
     "[data-test-id='main-feed-activity-card__commentary']",
+  ];
+  const YOUTUBE_TITLE_SELECTORS = ["#video-title"];
+  const YOUTUBE_EXCERPT_SELECTORS = ["#metadata-line"];
+  const YOUTUBE_PUBLISHER_SELECTORS = ["#channel-name"];
+  const TABOOLA_TITLE_SELECTORS = [
+    ".videoCube-title",
+    ".card-title",
+    "[class*='item-title']",
+  ];
+  const TABOOLA_BRANDING_SELECTORS = [
+    "[class*='branding']",
+    "[class*='sponsored']",
   ];
   const HEADING_SELECTORS = [
     "[slot='title']",
@@ -35,6 +60,10 @@
     "[data-testid='socialContext']",
     "[class*='feed-shared-actor__name']",
     "[class*='update-components-actor__title']",
+    ".sponsored-label",
+    ".ad-label",
+    ".promo-label",
+    ".promotion-label",
     "[class*='sponsored-label']",
     "[class*='ad-label']",
     "[class*='promo-label']",
@@ -245,19 +274,7 @@
     );
   }
 
-  function deriveCardFromNode(node) {
-    const bodyText = normalizeText(node.innerText || "");
-    if (!bodyText) {
-      return null;
-    }
-
-    const title = firstHeadingText(node) || bodyText.split(/\n+/).map(normalizeText).find(Boolean) || bodyText;
-    const publisher = firstPublisherText(node);
-    const excerptSource = normalizeText(
-      node.getAttribute?.("data-excerpt") ||
-        node.querySelector("p")?.innerText ||
-        bodyText
-    );
+  function buildCard(title, publisher, excerptSource, bodyText) {
     let excerpt = excerptSource;
     if (excerpt && title && excerpt.startsWith(title)) {
       excerpt = normalizeText(excerpt.slice(title.length));
@@ -270,6 +287,48 @@
       excerpt,
       publisher,
     };
+  }
+
+  function deriveCardFromNode(node) {
+    const bodyText = normalizeText(node.innerText || "");
+    if (!bodyText) {
+      return null;
+    }
+
+    if (matchesSelector(node, YOUTUBE_CARD_SELECTOR)) {
+      const title = queryFirstText(node, YOUTUBE_TITLE_SELECTORS) ||
+        firstHeadingText(node) ||
+        bodyText.split(/\n+/).map(normalizeText).find(Boolean) ||
+        bodyText;
+      const publisher = queryFirstText(node, YOUTUBE_PUBLISHER_SELECTORS) || firstPublisherText(node);
+      const excerptSource = queryFirstText(node, YOUTUBE_EXCERPT_SELECTORS) || normalizeText(
+        node.getAttribute?.("data-excerpt") ||
+          bodyText
+      );
+      return buildCard(title, publisher, excerptSource, bodyText);
+    }
+
+    if (matchesSelector(node, TABOOLA_OUTBRAIN_SELECTOR)) {
+      const title = queryFirstText(node, TABOOLA_TITLE_SELECTORS) ||
+        firstHeadingText(node) ||
+        bodyText.split(/\n+/).map(normalizeText).find(Boolean) ||
+        bodyText;
+      const publisher = queryFirstText(node, TABOOLA_BRANDING_SELECTORS) || firstPublisherText(node);
+      const excerptSource = queryFirstText(node, TABOOLA_BRANDING_SELECTORS) || normalizeText(
+        node.getAttribute?.("data-excerpt") ||
+          bodyText
+      );
+      return buildCard(title, publisher, excerptSource, bodyText);
+    }
+
+    const title = firstHeadingText(node) || bodyText.split(/\n+/).map(normalizeText).find(Boolean) || bodyText;
+    const publisher = firstPublisherText(node);
+    const excerptSource = normalizeText(
+      node.getAttribute?.("data-excerpt") ||
+        node.querySelector("p")?.innerText ||
+        bodyText
+    );
+    return buildCard(title, publisher, excerptSource, bodyText);
   }
 
   function getCandidateNodes(root) {

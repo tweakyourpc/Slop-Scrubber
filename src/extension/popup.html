@@ -113,6 +113,28 @@
         font-size: 12px;
       }
 
+      .text-button {
+        appearance: none;
+        background: none;
+        border: 0;
+        color: var(--muted);
+        cursor: pointer;
+        font: inherit;
+        margin: -2px 0 12px;
+        padding: 0;
+      }
+
+      .text-button:hover {
+        color: var(--text);
+        text-decoration: underline;
+      }
+
+      .text-button:focus-visible {
+        outline: 2px solid var(--line);
+        outline-offset: 2px;
+        border-radius: 4px;
+      }
+
       .rules {
         margin-top: 12px;
       }
@@ -171,6 +193,8 @@
         </label>
         <input id="enabled" type="checkbox" />
       </div>
+
+      <button id="reset-stats" class="text-button" type="button">Reset stats</button>
 
       <div class="row">
         <span>Suspect</span>

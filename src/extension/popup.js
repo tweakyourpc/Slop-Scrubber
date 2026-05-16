@@ -1,5 +1,6 @@
 const storageGet = (keys) => new Promise((resolve) => chrome.storage.local.get(keys, resolve));
 const storageSet = (items) => new Promise((resolve) => chrome.storage.local.set(items, resolve));
+const storageRemove = (keys) => new Promise((resolve) => chrome.storage.local.remove(keys, resolve));
 
 function domainFromUrl(urlString) {
   try {
@@ -36,6 +37,13 @@ function renderRules(ruleCounts) {
   }
 }
 
+function renderStats(stats) {
+  document.getElementById("suspect-count").textContent = String(stats.bucketCounts?.suspect || 0);
+  document.getElementById("block-count").textContent = String(stats.bucketCounts?.block || 0);
+  document.getElementById("flagged-count").textContent = String(stats.totalFlagged || 0);
+  renderRules(stats.ruleCounts || {});
+}
+
 async function updateView() {
   const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
   const domain = tabs[0]?.url ? domainFromUrl(tabs[0].url) : null;
@@ -43,12 +51,14 @@ async function updateView() {
   const title = document.getElementById("title");
   const status = document.getElementById("status");
   const enabled = document.getElementById("enabled");
+  const resetButton = document.getElementById("reset-stats");
 
   if (!domain) {
     domainLabel.textContent = "No active tab";
     title.textContent = "Slop-Scrubber";
     status.textContent = "Open a web page to inspect per-domain stats.";
     enabled.checked = false;
+    resetButton.disabled = true;
     return;
   }
 
@@ -61,11 +71,9 @@ async function updateView() {
   title.textContent = "Current Domain";
   domainLabel.textContent = domain;
   enabled.checked = isEnabled;
-  document.getElementById("suspect-count").textContent = String(stats.bucketCounts?.suspect || 0);
-  document.getElementById("block-count").textContent = String(stats.bucketCounts?.block || 0);
-  document.getElementById("flagged-count").textContent = String(stats.totalFlagged || 0);
-  renderRules(stats.ruleCounts || {});
+  renderStats(stats);
   status.textContent = isEnabled ? "Scoring active." : "Scoring disabled for this domain.";
+  resetButton.disabled = false;
 
   enabled.onchange = async () => {
     const nextDisabled = new Set(disabledDomains);
@@ -76,6 +84,12 @@ async function updateView() {
     }
     await storageSet({ disabledDomains: Array.from(nextDisabled) });
     status.textContent = enabled.checked ? "Scoring active." : "Scoring disabled for this domain.";
+  };
+
+  resetButton.onclick = async () => {
+    await storageRemove(statsKey);
+    renderStats({});
+    status.textContent = "Stats reset for this domain.";
   };
 }
 
