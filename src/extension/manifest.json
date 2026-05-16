@@ -12,7 +12,8 @@
     {
       "matches": ["<all_urls>"],
       "js": ["content.js"],
-      "css": ["inject.css"]
+      "css": ["inject.css"],
+      "all_frames": true
     }
   ],
   "web_accessible_resources": [

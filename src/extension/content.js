@@ -6,6 +6,79 @@
   const SCAN_BATCH_DELAY_MS = 150;
   const FLAGGED_ATTR = "data-slop-scrubber-flagged";
   const SCANNED_ATTR = "data-slop-scrubber-scanned";
+  const MIN_CANDIDATE_TEXT_LENGTH = 20;
+  const DEFAULT_MAX_CANDIDATE_TEXT_LENGTH = 1200;
+  const HEADING_SELECTORS = [
+    "[slot='title']",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "[role='heading']",
+    "[data-testid='tweetText']",
+    "[data-test-id='post-content']",
+  ];
+  const PUBLISHER_SELECTORS = [
+    "[data-publisher]",
+    "[data-testid='User-Name']",
+    "[data-testid='socialContext']",
+    "[class*='feed-shared-actor__name']",
+    "[class*='update-components-actor__title']",
+    "[class*='sponsored-label']",
+    "[class*='ad-label']",
+    "[class*='promo-label']",
+    "[class*='brandvoice']",
+    "[aria-label*='sponsored' i]",
+    "[aria-label*='promoted' i]",
+    "[aria-label*='brandvoice' i]",
+    "[aria-label*='presented by' i]",
+    "[aria-label*='paid partner content' i]",
+    "[aria-label*='advertiser content' i]",
+    "[aria-label*='around the web' i]",
+    "[aria-label*='you may like' i]",
+    ".publisher",
+    ".source",
+    "[class*='publisher']",
+    "[class*='source']",
+    "cite",
+    "footer",
+  ];
+  const KNOWN_CARD_SELECTOR = [
+    "c-wiz",
+    "g-card",
+    "shreddit-post",
+    "[data-testid='tweet']",
+    "[data-testid='cellInnerDiv']",
+    "[data-urn*='urn:li:activity']",
+    "[class*='feed-shared-update']",
+    "[class*='feed-shared-update-v2']",
+    "[class*='taboola']",
+    "[class*='outbrain']",
+    "[data-widget-type*='taboola']",
+    "[data-widget-type*='outbrain']",
+  ].join(", ");
+  const CANDIDATE_SELECTOR = [
+    "article",
+    "[role='article']",
+    "section",
+    "li",
+    "a",
+    "div",
+    "c-wiz",
+    "g-card",
+    "shreddit-post",
+    "[data-testid='tweet']",
+    "[data-testid='cellInnerDiv']",
+    "[data-urn*='urn:li:activity']",
+    "[class*='feed-shared-update']",
+    "[class*='feed-shared-update-v2']",
+    "[class*='taboola']",
+    "[class*='outbrain']",
+    "[data-widget-type*='taboola']",
+    "[data-widget-type*='outbrain']",
+  ].join(", ");
   const statsKey = `slopScrubberStats:${DOMAIN}`;
   const state = {
     rules: null,
@@ -38,8 +111,57 @@
     return String(text || "").replace(/\s+/g, " ").trim();
   }
 
+  function nodeText(node) {
+    return normalizeText(
+      node?.innerText ||
+        node?.textContent ||
+        node?.getAttribute?.("data-publisher") ||
+        node?.getAttribute?.("aria-label") ||
+        ""
+    );
+  }
+
   function isElement(node) {
     return node && node.nodeType === Node.ELEMENT_NODE;
+  }
+
+  function matchesSelector(node, selector) {
+    return Boolean(selector && node.matches?.(selector));
+  }
+
+  function queryFirstText(node, selectors) {
+    for (const selector of selectors) {
+      const match = node.querySelector(selector);
+      const text = nodeText(match);
+      if (text) {
+        return text;
+      }
+    }
+    return "";
+  }
+
+  function hasKnownCardMarker(node) {
+    return matchesSelector(node, KNOWN_CARD_SELECTOR);
+  }
+
+  function hasCardSignals(node) {
+    return Boolean(
+      hasKnownCardMarker(node) ||
+      node.hasAttribute?.("data-publisher") ||
+      node.hasAttribute?.("data-excerpt") ||
+      queryFirstText(node, HEADING_SELECTORS) ||
+      queryFirstText(node, PUBLISHER_SELECTORS)
+    );
+  }
+
+  function maxCandidateTextLength(node) {
+    if (hasKnownCardMarker(node)) {
+      return 1600;
+    }
+    if (matchesSelector(node, "a")) {
+      return 400;
+    }
+    return DEFAULT_MAX_CANDIDATE_TEXT_LENGTH;
   }
 
   function isCandidateElement(node) {
@@ -49,21 +171,27 @@
     if (!node.isConnected || node.matches("script, style, template, noscript")) {
       return false;
     }
-    const text = normalizeText(node.innerText || "");
-    return text.length >= 20 && text.length <= 600;
+    const text = normalizeText(node.innerText || node.textContent || "");
+    if (text.length < MIN_CANDIDATE_TEXT_LENGTH) {
+      return false;
+    }
+    if (text.length > maxCandidateTextLength(node) && !hasKnownCardMarker(node)) {
+      return false;
+    }
+    if (matchesSelector(node, "div, a") && !hasCardSignals(node) && !hasKnownCardMarker(node)) {
+      return false;
+    }
+    return true;
   }
 
   function firstHeadingText(node) {
-    const heading = node.querySelector("h1, h2, h3, h4, h5, h6, [role='heading']");
-    return normalizeText(heading?.innerText || "");
+    return queryFirstText(node, HEADING_SELECTORS);
   }
 
   function firstPublisherText(node) {
-    const publisherNode = node.querySelector("[data-publisher], .publisher, .source, cite, footer");
-    return normalizeText(
-      publisherNode?.innerText ||
-        publisherNode?.getAttribute?.("data-publisher") ||
-        node.getAttribute?.("data-publisher") ||
+    return queryFirstText(node, PUBLISHER_SELECTORS) || normalizeText(
+      node.getAttribute?.("data-publisher") ||
+        node.getAttribute?.("aria-label") ||
         node.dataset?.publisher ||
         ""
     );
@@ -108,7 +236,7 @@
     };
 
     push(root);
-    root.querySelectorAll("article, section, li, a, div").forEach((node) => {
+    root.querySelectorAll(CANDIDATE_SELECTOR).forEach((node) => {
       if (isCandidateElement(node)) {
         push(node);
       }
