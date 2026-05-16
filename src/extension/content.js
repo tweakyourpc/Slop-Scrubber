@@ -9,6 +9,11 @@
   const MIN_CANDIDATE_TEXT_LENGTH = 20;
   const DEFAULT_MAX_CANDIDATE_TEXT_LENGTH = 1200;
   const GENERIC_FALLBACK_SELECTOR = "div, a";
+  const LINKEDIN_POST_SELECTOR = ".feed-shared-update-v2, .occludable-update";
+  const LINKEDIN_TITLE_SELECTORS = [
+    ".feed-shared-text",
+    "[data-test-id='main-feed-activity-card__commentary']",
+  ];
   const HEADING_SELECTORS = [
     "[slot='title']",
     "h1",
@@ -23,6 +28,9 @@
   ];
   const PUBLISHER_SELECTORS = [
     "[data-publisher]",
+    "[data-testid*='sponsor']",
+    "[data-testid*='promoted']",
+    "[data-ad-label]",
     "[data-testid='User-Name']",
     "[data-testid='socialContext']",
     "[class*='feed-shared-actor__name']",
@@ -30,6 +38,7 @@
     "[class*='sponsored-label']",
     "[class*='ad-label']",
     "[class*='promo-label']",
+    "[class*='promotion-label']",
     "[class*='brandvoice']",
     "[aria-label*='sponsored' i]",
     "[aria-label*='promoted' i]",
@@ -50,12 +59,15 @@
     "c-wiz",
     "g-card",
     "shreddit-post",
+    "[data-testid='tweet']",
+    "[data-testid='card.wrapper']",
+    ".feed-shared-update-v2",
+    ".occludable-update",
     "ytd-rich-item-renderer",
     "ytd-video-renderer",
     "ytd-compact-video-renderer",
     "ytd-grid-video-renderer",
     "ytd-rich-grid-media",
-    "[data-testid='tweet']",
     "[data-testid='cellInnerDiv']",
     "[data-urn*='urn:li:activity']",
     "[class*='feed-shared-update']",
@@ -70,15 +82,20 @@
     "[role='article']",
     "section",
     "li",
+    "a",
+    "div",
+    "shreddit-post",
     "c-wiz",
     "g-card",
-    "shreddit-post",
+    "[data-testid='tweet']",
+    "[data-testid='card.wrapper']",
+    ".feed-shared-update-v2",
+    ".occludable-update",
     "ytd-rich-item-renderer",
     "ytd-video-renderer",
     "ytd-compact-video-renderer",
     "ytd-grid-video-renderer",
     "ytd-rich-grid-media",
-    "[data-testid='tweet']",
     "[data-testid='cellInnerDiv']",
     "[data-urn*='urn:li:activity']",
     "[class*='feed-shared-update']",
@@ -125,6 +142,7 @@
       node?.innerText ||
         node?.textContent ||
         node?.getAttribute?.("data-publisher") ||
+        node?.getAttribute?.("data-ad-label") ||
         node?.getAttribute?.("aria-label") ||
         ""
     );
@@ -209,12 +227,19 @@
   }
 
   function firstHeadingText(node) {
+    if (matchesSelector(node, LINKEDIN_POST_SELECTOR)) {
+      const linkedInTitle = queryFirstText(node, LINKEDIN_TITLE_SELECTORS);
+      if (linkedInTitle) {
+        return linkedInTitle;
+      }
+    }
     return queryFirstText(node, HEADING_SELECTORS);
   }
 
   function firstPublisherText(node) {
     return queryFirstText(node, PUBLISHER_SELECTORS) || normalizeText(
       node.getAttribute?.("data-publisher") ||
+        node.getAttribute?.("data-ad-label") ||
         node.dataset?.publisher ||
         ""
     );
