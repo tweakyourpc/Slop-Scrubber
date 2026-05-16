@@ -25,11 +25,11 @@ The project is built around four constraints:
 
 If you just want the browser extension, download the prebuilt release zip from the GitHub Releases page, unzip it locally, and load the unzipped folder in Chrome as an unpacked extension.
 
-1. Download `slop-scrubber-extension-v0.1.3.zip` from Releases.
+1. Download `slop-scrubber-extension-v0.1.4.zip` from Releases.
 2. Unzip it.
 3. Open `chrome://extensions`.
 4. Enable Developer Mode.
-5. Click "Load unpacked" and select the unzipped `slop-scrubber-extension-v0.1.3/` folder.
+5. Click "Load unpacked" and select the unzipped `slop-scrubber-extension-v0.1.4/` folder.
 
 Chrome does not install this package directly from the zip file. It must be unzipped first.
 
@@ -160,7 +160,7 @@ Package a downloadable release zip:
 python scripts/build_extension.py --package
 ```
 
-This also writes `dist/releases/slop-scrubber-extension-v0.1.3.zip`, which is the file attached to GitHub Releases for less technical users.
+This also writes `dist/releases/slop-scrubber-extension-v0.1.4.zip`, which is the file attached to GitHub Releases for less technical users.
 
 To load it in Chrome, open `chrome://extensions`, enable Developer Mode, choose "Load unpacked", and select `dist/extension/`.
 
