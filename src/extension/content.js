@@ -5,11 +5,29 @@
   const RULES_URL = chrome.runtime.getURL("config/rules.json");
   const SCAN_BATCH_DELAY_MS = 150;
   const FLAGGED_ATTR = "data-slop-scrubber-flagged";
+  const BADGE_ATTR = "data-slop-scrubber-badge";
+  const CLEAN_ATTR = "data-slop-scrubber-clean";
   const SCANNED_ATTR = "data-slop-scrubber-scanned";
   const MIN_CANDIDATE_TEXT_LENGTH = 20;
   const DEFAULT_MAX_CANDIDATE_TEXT_LENGTH = 1200;
   const GENERIC_FALLBACK_SELECTOR = "div, a";
   const LINKEDIN_POST_SELECTOR = ".feed-shared-update-v2, .occludable-update";
+  const X_POST_SELECTOR = [
+    "[data-testid='tweet']",
+    "[data-testid='cellInnerDiv'] article",
+    "article[data-testid='tweet']",
+  ].join(", ");
+  const X_MEDIA_ONLY_SELECTOR = [
+    "[data-testid='tweetPhoto']",
+    "[data-testid='videoPlayer']",
+    "[data-testid='card.layoutLarge.media']",
+  ].join(", ");
+  const BSKY_POST_SELECTOR = [
+    "[data-testid='feedItem']",
+    "[data-testid='postThreadItem']",
+    "article",
+  ].join(", ");
+  const BSKY_POST_LINK_SELECTOR = "a[href*='/profile/'][href*='/post/']";
   const YOUTUBE_CARD_SELECTOR = [
     "ytd-rich-item-renderer",
     "ytd-video-renderer",
@@ -30,6 +48,37 @@
   const YOUTUBE_TITLE_SELECTORS = ["#video-title"];
   const YOUTUBE_EXCERPT_SELECTORS = ["#metadata-line"];
   const YOUTUBE_PUBLISHER_SELECTORS = ["#channel-name"];
+  const X_TITLE_SELECTORS = ["[data-testid='tweetText']", "[lang]"];
+  const X_PUBLISHER_SELECTORS = ["[data-testid='User-Name']", "[data-testid='socialContext']"];
+  const X_EXCERPT_SELECTORS = [
+    "[data-testid='card.wrapper']",
+    "[data-testid='socialContext']",
+    "[data-testid='tweetText']",
+  ];
+  const BSKY_TITLE_SELECTORS = [
+    "[data-testid='postText']",
+    "[data-testid='post-text']",
+    "[data-testid='feedItem-postText']",
+    "[data-testid='post-text-content']",
+    "[data-testid='postThreadItem-byline'] + div",
+    "[aria-label='Post text']",
+    "[role='link'] [dir='auto']",
+    "[dir='auto']",
+  ];
+  const BSKY_PUBLISHER_SELECTORS = [
+    "a[href*='/profile/']:not([href*='/post/'])",
+    "[data-testid='profileLink']",
+  ];
+  const BSKY_EXCERPT_SELECTORS = [
+    "[data-testid='postText']",
+    "[data-testid='post-text']",
+    "[data-testid='feedItem-postText']",
+    "[data-testid='post-text-content']",
+    "[data-testid='embed-external']",
+    "[data-testid='embed-record']",
+    "[data-testid='embed-record-with-media']",
+    "[aria-label='Post text']",
+  ];
   const TABOOLA_TITLE_SELECTORS = [
     ".videoCube-title",
     ".card-title",
@@ -135,6 +184,7 @@
     "[data-widget-type*='outbrain']",
   ].join(", ");
   const statsKey = `slopScrubberStats:${DOMAIN}`;
+  const auditLogKey = `slopScrubberAuditLog:${DOMAIN}`;
   const state = {
     rules: null,
     disabledDomains: [],
@@ -152,6 +202,7 @@
     countedNodes: new WeakSet(),
     revealListenerAttached: false,
     enabled: true,
+    auditWrite: Promise.resolve(),
   };
 
   function storageGet(keys) {
@@ -164,6 +215,14 @@
 
   function normalizeText(text) {
     return String(text || "").replace(/\s+/g, " ").trim();
+  }
+
+  function formatDecimalScore(value) {
+    return Math.max(0, Math.min(1, Number(value) / 100)).toFixed(2);
+  }
+
+  function formatQualityScore(value) {
+    return Math.max(0, Math.min(1, 1 - (Number(value) / 100))).toFixed(2);
   }
 
   function nodeText(node) {
@@ -197,7 +256,33 @@
   }
 
   function hasKnownCardMarker(node) {
-    return matchesSelector(node, KNOWN_CARD_SELECTOR);
+    return matchesSelector(node, KNOWN_CARD_SELECTOR) || isXPostNode(node) || isBlueskyPostNode(node);
+  }
+
+  function isXPostNode(node) {
+    if (!(DOMAIN === "x.com" || DOMAIN.endsWith(".x.com") || DOMAIN === "twitter.com" || DOMAIN.endsWith(".twitter.com"))) {
+      return false;
+    }
+    if (matchesSelector(node, X_MEDIA_ONLY_SELECTOR)) {
+      return false;
+    }
+    return matchesSelector(node, X_POST_SELECTOR) || Boolean(node.querySelector?.("[data-testid='tweetText']"));
+  }
+
+  function isBlueskyPostNode(node) {
+    if (!(DOMAIN === "bsky.app" || DOMAIN.endsWith(".bsky.app"))) {
+      return false;
+    }
+    if (node.matches?.(BSKY_POST_LINK_SELECTOR)) {
+      return true;
+    }
+    if (matchesSelector(node, BSKY_POST_SELECTOR) && queryFirstText(node, BSKY_TITLE_SELECTORS)) {
+      return true;
+    }
+    return Boolean(
+      node.querySelector?.(BSKY_POST_LINK_SELECTOR) &&
+      (queryFirstText(node, BSKY_TITLE_SELECTORS) || queryFirstText(node, BSKY_PUBLISHER_SELECTORS))
+    );
   }
 
   function hasExcerptSignal(node) {
@@ -206,6 +291,38 @@
         node.querySelector("[data-excerpt], p, #description-text, [slot='summary']")?.innerText ||
         ""
     ));
+  }
+
+  function isMediaOnlyElement(node) {
+    const mediaChild = node.querySelector?.("img, picture, video, canvas, svg");
+    if (!mediaChild) {
+      return false;
+    }
+    const textOnly = normalizeText(node.innerText || node.textContent || "");
+    return textOnly.length < MIN_CANDIDATE_TEXT_LENGTH;
+  }
+
+  function isHiddenElement(node) {
+    if (node.hidden || node.getAttribute?.("aria-hidden") === "true") {
+      return true;
+    }
+    const style = window.getComputedStyle(node);
+    if (style.display === "none" || style.visibility === "hidden") {
+      return true;
+    }
+    const rect = node.getBoundingClientRect?.();
+    return Boolean(rect && rect.width === 0 && rect.height === 0);
+  }
+
+  function isPureMediaLink(node) {
+    if (!matchesSelector(node, "a")) {
+      return false;
+    }
+    if (!node.querySelector?.("img, picture, video")) {
+      return false;
+    }
+    const text = normalizeText(node.innerText || node.textContent || "");
+    return text.length < MIN_CANDIDATE_TEXT_LENGTH;
   }
 
   function hasCardSignals(node) {
@@ -236,7 +353,7 @@
     if (!isElement(node)) {
       return false;
     }
-    if (!node.isConnected || node.matches("script, style, template, noscript")) {
+    if (!node.isConnected || node.matches("script, style, template, noscript") || isHiddenElement(node)) {
       return false;
     }
     const text = normalizeText(node.innerText || node.textContent || "");
@@ -244,6 +361,12 @@
       return false;
     }
     if (text.length > maxCandidateTextLength(node) && !hasKnownCardMarker(node)) {
+      return false;
+    }
+    if (isMediaOnlyElement(node) && !hasKnownCardMarker(node)) {
+      return false;
+    }
+    if (isPureMediaLink(node) && !hasKnownCardMarker(node)) {
       return false;
     }
     if (matchesSelector(node, GENERIC_FALLBACK_SELECTOR)) {
@@ -293,6 +416,32 @@
     const bodyText = normalizeText(node.innerText || "");
     if (!bodyText) {
       return null;
+    }
+
+    if (isXPostNode(node)) {
+      const title = queryFirstText(node, X_TITLE_SELECTORS) ||
+        firstHeadingText(node) ||
+        bodyText.split(/\n+/).map(normalizeText).find(Boolean) ||
+        bodyText;
+      const publisher = queryFirstText(node, X_PUBLISHER_SELECTORS) || firstPublisherText(node);
+      const excerptSource = queryFirstText(node, X_EXCERPT_SELECTORS) || normalizeText(
+        node.getAttribute?.("data-excerpt") ||
+          bodyText
+      );
+      return buildCard(title, publisher, excerptSource, bodyText);
+    }
+
+    if (isBlueskyPostNode(node)) {
+      const title = queryFirstText(node, BSKY_TITLE_SELECTORS) ||
+        firstHeadingText(node) ||
+        bodyText.split(/\n+/).map(normalizeText).find(Boolean) ||
+        bodyText;
+      const publisher = queryFirstText(node, BSKY_PUBLISHER_SELECTORS) || firstPublisherText(node);
+      const excerptSource = queryFirstText(node, BSKY_EXCERPT_SELECTORS) || normalizeText(
+        node.getAttribute?.("data-excerpt") ||
+          bodyText
+      );
+      return buildCard(title, publisher, excerptSource, bodyText);
     }
 
     if (matchesSelector(node, YOUTUBE_CARD_SELECTOR)) {
@@ -357,26 +506,86 @@
     }
   }
 
-  function applyResult(node, result) {
+  function shouldRenderBadge(node) {
+    const style = window.getComputedStyle(node);
+    return style.display !== "inline" && style.display !== "contents";
+  }
+
+  function clearPresentationState(node) {
+    node.removeAttribute(FLAGGED_ATTR);
+    node.removeAttribute(BADGE_ATTR);
+    node.removeAttribute(CLEAN_ATTR);
+    node.removeAttribute("data-slop-scrubber-bucket");
+    node.removeAttribute("data-slop-scrubber-score");
+    node.removeAttribute("data-slop-scrubber-revealed");
+    node.removeAttribute("data-slop-scrubber-label");
+    node.style.removeProperty("--slop-score");
+    node.style.removeProperty("--slop-clean-score");
+  }
+
+  function queueAuditLog(entry) {
+    state.auditWrite = state.auditWrite
+      .then(async () => {
+        const payload = await storageGet([auditLogKey]);
+        const existing = Array.isArray(payload[auditLogKey]) ? payload[auditLogKey] : [];
+        const lastEntry = existing[existing.length - 1];
+        const isDuplicate = Boolean(
+          lastEntry &&
+          lastEntry.title === entry.title &&
+          lastEntry.bucket === entry.bucket &&
+          lastEntry.score === entry.score &&
+          (entry.flaggedAt - Number(lastEntry.flaggedAt || 0)) < 120000
+        );
+        const next = (isDuplicate
+          ? [...existing.slice(0, -1), { ...lastEntry, flaggedAt: entry.flaggedAt, rules: entry.rules }]
+          : [...existing, entry]).slice(-50);
+        await storageSet({ [auditLogKey]: next });
+      })
+      .catch((error) => console.error(error));
+  }
+
+  function buildAuditEntry(card, result) {
+    return {
+      title: normalizeText(card.title || card.excerpt || card.publisher || "(untitled)").slice(0, 180),
+      score: result.score,
+      bucket: result.bucket,
+      rules: [...(result.matchedRules || [])].slice(0, 3),
+      flaggedAt: Date.now(),
+    };
+  }
+
+  function applyResult(node, result, card) {
     const bucket = result.bucket;
+    const scoreDisplay = formatDecimalScore(result.score);
     if (bucket === "Human") {
-      node.removeAttribute(FLAGGED_ATTR);
-      node.removeAttribute("data-slop-scrubber-bucket");
-      node.removeAttribute("data-slop-scrubber-score");
+      clearPresentationState(node);
+      node.setAttribute(CLEAN_ATTR, formatQualityScore(result.score));
+      if (shouldRenderBadge(node)) {
+        node.setAttribute(BADGE_ATTR, "1");
+      }
+      node.style.setProperty("--slop-clean-score", `"${formatQualityScore(result.score)}"`);
       return;
     }
 
+    node.removeAttribute(CLEAN_ATTR);
+    node.style.removeProperty("--slop-clean-score");
     const nextFlag = bucket === "High Probability Slop (Block)" ? "block" : "suspect";
     const prevFlag = node.getAttribute(FLAGGED_ATTR);
     node.setAttribute(FLAGGED_ATTR, nextFlag);
     node.setAttribute("data-slop-scrubber-bucket", bucket);
     node.setAttribute("data-slop-scrubber-score", String(result.score));
+    node.setAttribute("data-slop-scrubber-label", nextFlag === "block" ? "High Probability Slop" : "Suspect");
+    if (shouldRenderBadge(node)) {
+      node.setAttribute(BADGE_ATTR, "1");
+    }
+    node.style.setProperty("--slop-score", `"${scoreDisplay}"`);
 
     if (prevFlag !== nextFlag && !state.countedNodes.has(node)) {
       state.countedNodes.add(node);
       state.stats.totalFlagged += 1;
       state.stats.bucketCounts[nextFlag] += 1;
       bumpRuleCounts(result);
+      queueAuditLog(buildAuditEntry(card, result));
     }
   }
 
@@ -419,6 +628,12 @@
       return;
     }
 
+    const scoredAncestor = node.parentElement?.closest?.(`[${SCANNED_ATTR}]`);
+    if (scoredAncestor && (scoredAncestor.hasAttribute(FLAGGED_ATTR) || scoredAncestor.hasAttribute(CLEAN_ATTR))) {
+      node.setAttribute(SCANNED_ATTR, "1");
+      return;
+    }
+
     const card = deriveCardFromNode(node);
     if (!card) {
       node.setAttribute(SCANNED_ATTR, "1");
@@ -427,7 +642,7 @@
 
     const result = scorer.scoreContentCard(card, state.rules);
     node.setAttribute(SCANNED_ATTR, "1");
-    applyResult(node, result);
+    applyResult(node, result, card);
     if (result.bucket !== "Human") {
       schedulePersist();
     }
@@ -483,10 +698,11 @@
       return;
     }
     root.querySelectorAll(`[${FLAGGED_ATTR}]`).forEach((node) => {
-      node.removeAttribute(FLAGGED_ATTR);
-      node.removeAttribute("data-slop-scrubber-bucket");
-      node.removeAttribute("data-slop-scrubber-score");
-      node.removeAttribute("data-slop-scrubber-revealed");
+      clearPresentationState(node);
+      node.removeAttribute(SCANNED_ATTR);
+    });
+    root.querySelectorAll(`[${CLEAN_ATTR}]`).forEach((node) => {
+      clearPresentationState(node);
       node.removeAttribute(SCANNED_ATTR);
     });
   }

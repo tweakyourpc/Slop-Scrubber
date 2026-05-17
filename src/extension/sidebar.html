@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Slop-Scrubber Sidebar</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #f7f4ef;
+        --panel: #ffffff;
+        --text: #1d1d1f;
+        --muted: #64646b;
+        --line: #d8d3cc;
+        --accent: rgba(255, 0, 0, 0.82);
+        --green: rgba(34, 197, 94, 0.9);
+        --amber: rgba(251, 146, 60, 0.9);
+        --red: rgba(239, 68, 68, 0.9);
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #121212;
+          --panel: #1b1b1b;
+          --text: #f3f3f4;
+          --muted: #a4a4aa;
+          --line: #313136;
+          --accent: rgba(255, 92, 92, 0.95);
+          --green: rgba(74, 222, 128, 0.92);
+          --amber: rgba(251, 146, 60, 0.95);
+          --red: rgba(248, 113, 113, 0.95);
+        }
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background: linear-gradient(180deg, var(--bg), var(--panel));
+        color: var(--text);
+        font: 14px/1.5 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      body {
+        box-sizing: border-box;
+        padding: 18px;
+      }
+
+      .shell {
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: var(--panel);
+        padding: 18px;
+        box-shadow: 0 14px 32px rgba(0, 0, 0, 0.08);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 22px;
+      }
+
+      .subtitle,
+      .muted {
+        color: var(--muted);
+      }
+
+      .grid {
+        margin-top: 16px;
+        display: grid;
+        gap: 12px;
+      }
+
+      .card {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 12px;
+        background: rgba(0, 0, 0, 0.02);
+      }
+
+      .status {
+        display: inline-flex;
+        gap: 8px;
+        align-items: center;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: rgba(34, 197, 94, 0.12);
+        color: var(--green);
+        font-weight: 700;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <p class="muted">🧹 Slop-Scrubber</p>
+      <h1>Take back your feed.</h1>
+      <p class="subtitle">Local. Deterministic. Auditable.</p>
+
+      <div class="grid">
+        <div class="card">
+          <div class="status">Future side panel scaffold</div>
+          <p id="sidebar-domain" class="muted">Loading current domain…</p>
+        </div>
+        <div class="card">
+          <strong>Planned use</strong>
+          <p class="muted">A live on-page audit stream, top rules, and per-card inspection without sending anything off-device.</p>
+        </div>
+        <div class="card">
+          <strong>Current mode</strong>
+          <p class="muted">This file is scaffolded for the next UI pass and is not wired into the manifest side panel yet.</p>
+        </div>
+      </div>
+    </div>
+
+    <script src="sidebar.js"></script>
+  </body>
+</html>

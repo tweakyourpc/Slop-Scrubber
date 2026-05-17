@@ -25,11 +25,11 @@ The project is built around four constraints:
 
 If you just want the browser extension, download the prebuilt release zip from the GitHub Releases page, unzip it locally, and load the unzipped folder in Chrome as an unpacked extension.
 
-1. Download `slop-scrubber-extension-v0.1.4.zip` from Releases.
+1. Download `slop-scrubber-extension-v0.1.6.zip` from Releases.
 2. Unzip it.
 3. Open `chrome://extensions`.
 4. Enable Developer Mode.
-5. Click "Load unpacked" and select the unzipped `slop-scrubber-extension-v0.1.4/` folder.
+5. Click "Load unpacked" and select the unzipped `slop-scrubber-extension-v0.1.6/` folder.
 
 Chrome does not install this package directly from the zip file. It must be unzipped first.
 
@@ -160,7 +160,7 @@ Package a downloadable release zip:
 python scripts/build_extension.py --package
 ```
 
-This also writes `dist/releases/slop-scrubber-extension-v0.1.4.zip`, which is the file attached to GitHub Releases for less technical users.
+This also writes `dist/releases/slop-scrubber-extension-v0.1.6.zip`, which is the file attached to GitHub Releases for less technical users.
 
 To load it in Chrome, open `chrome://extensions`, enable Developer Mode, choose "Load unpacked", and select `dist/extension/`.
 
@@ -171,6 +171,32 @@ To verify the build is current without rebuilding:
 ```bash
 python scripts/build_extension.py --check
 ```
+
+## Dataset Capture
+
+To generate a machine-collected calibration dataset across a curated list of major news, pop-culture, and entertainment sites, run:
+
+```bash
+npm run capture:dataset
+```
+
+Useful flags:
+
+```bash
+node scripts/capture_dataset.mjs --limit 25 --max-cards 80 --wait-ms 5000
+node scripts/capture_dataset.mjs --sites config/dataset_sites.json --chrome-path /usr/bin/google-chrome
+```
+
+The runner uses local Chrome in headless mode, visits each site, extracts likely feed cards, scores them with the same deterministic scorer used by the extension, and writes results under `dist/datasets/capture-<timestamp>/`.
+
+Output files:
+
+- `cards.ndjson`: one scored card per line with extracted fields, score, bucket, rules, and DOM fingerprint
+- `summary.json`: aggregate counts and top matched rules
+- `runs.json`: per-site success/failure and capture counts
+- `sites.json`: the exact site list used for that run
+
+The default site list lives in `config/dataset_sites.json`.
 
 ## Tests
 

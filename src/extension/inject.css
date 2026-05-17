@@ -1,3 +1,12 @@
+/*
+  Badge rendering is pseudo-element based to avoid DOM mutation.
+  Cards that remain display:inline may not position the badge ideally even with forced relative positioning.
+*/
+[data-slop-scrubber-flagged][data-slop-scrubber-badge="1"],
+[data-slop-scrubber-clean][data-slop-scrubber-badge="1"] {
+  position: relative !important;
+}
+
 [data-slop-scrubber-flagged="suspect"] {
   background: rgba(255, 180, 0, 0.10);
   outline: 2px solid rgba(255, 140, 0, 0.55);
@@ -17,4 +26,46 @@
   opacity: 1;
   filter: none;
   pointer-events: auto;
+}
+
+[data-slop-scrubber-flagged][data-slop-scrubber-badge="1"]:not([data-slop-scrubber-revealed])::after,
+[data-slop-scrubber-clean][data-slop-scrubber-badge="1"]:hover::after {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 9999;
+  display: inline-flex;
+  align-items: center;
+  max-width: calc(100% - 16px);
+  padding: 6px 10px;
+  border-radius: 999px;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
+  font: 600 11px/1.1 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+[data-slop-scrubber-flagged="block"][data-slop-scrubber-badge="1"]:not([data-slop-scrubber-revealed])::after {
+  content: attr(data-slop-scrubber-label) " " var(--slop-score);
+  background: rgba(239, 68, 68, 0.96);
+  color: #fff;
+}
+
+[data-slop-scrubber-flagged="suspect"][data-slop-scrubber-badge="1"]:not([data-slop-scrubber-revealed])::after {
+  content: attr(data-slop-scrubber-label) " " var(--slop-score);
+  background: rgba(251, 146, 60, 0.96);
+  color: #2a1604;
+}
+
+[data-slop-scrubber-clean][data-slop-scrubber-badge="1"]::after {
+  content: "Human " var(--slop-clean-score);
+  background: rgba(34, 197, 94, 0.92);
+  color: #f7fff9;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+
+[data-slop-scrubber-clean][data-slop-scrubber-badge="1"]:hover::after {
+  opacity: 1;
 }

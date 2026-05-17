@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
   "name": "Slop-Scrubber",
-  "version": "0.1.4",
+  "version": "0.1.6",
   "description": "Highlights or suppresses low-signal content using local heuristics.",
-  "permissions": ["scripting", "activeTab", "storage", "tabs"],
+  "permissions": ["scripting", "activeTab", "storage", "tabs", "sidePanel"],
   "host_permissions": ["<all_urls>"],
   "action": {
     "default_popup": "popup.html"
