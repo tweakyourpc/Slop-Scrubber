@@ -6,7 +6,8 @@
     "4": "Expanded native-ad sentinel labels and added non-numeric headline-bait patterns.",
     "5": "Removed overly broad recommendation sentinel phrasing to reduce media-grid false positives.",
     "6": "Raised headline_like to reach Suspect on its own and expanded sponsored sentinel labels for contributor and ad-network disclosures.",
-    "7": "Expanded deterministic coverage for disclosure obfuscation, engagement-bait formulas, recommendation widget copy, affiliate commerce language, and branded-content network labels."
+    "7": "Expanded deterministic coverage for disclosure obfuscation, engagement-bait formulas, recommendation widget copy, affiliate commerce language, and branded-content network labels.",
+    "0.1.7": "Excluded modal and dialog overlays from content scanning so interactive requests remain clickable."
   },
   "thresholds": {
     "human": 25,

@@ -10,6 +10,21 @@
   const SCANNED_ATTR = "data-slop-scrubber-scanned";
   const MIN_CANDIDATE_TEXT_LENGTH = 20;
   const DEFAULT_MAX_CANDIDATE_TEXT_LENGTH = 1200;
+  const EXCLUDED_SELECTORS = [
+    // Modal and dialog containers - never scan interactive overlays.
+    '[role="dialog"]',
+    '[role="alertdialog"]',
+    '[aria-modal="true"]',
+    // LinkedIn specific modal patterns.
+    ".artdeco-modal",
+    ".artdeco-modal-overlay",
+    ".artdeco-dialog",
+    // Generic overlay patterns used across sites.
+    ".modal",
+    ".modal-content",
+    ".overlay",
+    "[data-test-modal]",
+  ];
   const GENERIC_FALLBACK_SELECTOR = "div, a";
   const LINKEDIN_POST_SELECTOR = ".feed-shared-update-v2, .occludable-update";
   const X_POST_SELECTOR = [
@@ -244,6 +259,13 @@
     return Boolean(selector && node.matches?.(selector));
   }
 
+  function isExcludedElement(node) {
+    return Boolean(
+      isElement(node) &&
+      EXCLUDED_SELECTORS.some((selector) => node.matches(selector) || node.closest(selector))
+    );
+  }
+
   function queryFirstText(node, selectors) {
     for (const selector of selectors) {
       const match = node.matches?.(selector) ? node : node.querySelector(selector);
@@ -351,6 +373,9 @@
 
   function isCandidateElement(node) {
     if (!isElement(node)) {
+      return false;
+    }
+    if (isExcludedElement(node)) {
       return false;
     }
     if (!node.isConnected || node.matches("script, style, template, noscript") || isHiddenElement(node)) {
@@ -624,7 +649,15 @@
   }
 
   function evaluateNode(node) {
-    if (!state.enabled || !isCandidateElement(node) || node.hasAttribute(SCANNED_ATTR)) {
+    if (!state.enabled || !isElement(node)) {
+      return;
+    }
+    if (isExcludedElement(node)) {
+      clearPresentationState(node);
+      node.removeAttribute(SCANNED_ATTR);
+      return;
+    }
+    if (!isCandidateElement(node) || node.hasAttribute(SCANNED_ATTR)) {
       return;
     }
 
@@ -641,6 +674,12 @@
     }
 
     const result = scorer.scoreContentCard(card, state.rules);
+    if (isExcludedElement(node)) {
+      clearPresentationState(node);
+      node.removeAttribute(SCANNED_ATTR);
+      return;
+    }
+
     node.setAttribute(SCANNED_ATTR, "1");
     applyResult(node, result, card);
     if (result.bucket !== "Human") {
@@ -759,12 +798,20 @@
 
     state.observer = new MutationObserver((mutations) => {
       for (const mutation of mutations) {
+        if (mutation.type === "attributes") {
+          queueNode(mutation.target);
+        }
         for (const addedNode of mutation.addedNodes) {
           queueNode(addedNode);
         }
       }
     });
-    state.observer.observe(document.body, { childList: true, subtree: true });
+    state.observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["role", "aria-modal", "class", "hidden", "style", "aria-hidden"],
+    });
   }
 
   function attachRevealListener() {
